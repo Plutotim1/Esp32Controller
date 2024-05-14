@@ -25,4 +25,15 @@
         </activity>
     </application>
 
+    <!--Bluetooth permissions-->
+    <uses-feature android:name="android.hardware.bluetooth" android:required="true"/>
+
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"></uses-permission>
+
+
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"></uses-permission>
+
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+
 </manifest>
