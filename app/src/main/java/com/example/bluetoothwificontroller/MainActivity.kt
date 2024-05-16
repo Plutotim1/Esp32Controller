@@ -1,20 +1,11 @@
 package com.example.bluetoothwificontroller
 
-import android.Manifest
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
-import android.content.ClipData.Item
-import android.content.pm.PackageManager
-import android.graphics.drawable.Icon
-import android.graphics.drawable.VectorDrawable
-import android.graphics.fonts.FontStyle
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -23,7 +14,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,19 +22,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardColors
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -55,21 +41,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import com.example.bluetoothwificontroller.ui.theme.BluetoothWiFiControllerTheme
 
 
 class MainActivity : ComponentActivity() {
 
-    val ENABLE_BT_CODE = 2
-    var permissionsAccepted = false
+    //val ENABLE_BT_CODE = 2
+    //var permissionsAccepted = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -172,17 +153,10 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Composable
 fun Title(modifier: Modifier = Modifier) {
     Text(
         text = "Connect to your Controller!",
+        fontSize = 20.sp,
         modifier = modifier
     )
 }
@@ -190,7 +164,7 @@ fun Title(modifier: Modifier = Modifier) {
 //will be replaced with a clickable element, showing basic information about a bluetooth device. Clicking will try to connect  to the device
 @Composable
 fun TestCard(
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     text: String = "Test",
     clicked: Boolean = false,
     onclick: () -> Unit
@@ -227,30 +201,44 @@ fun MainView() {
     }
 
     if (showConnectScreen.value) {
-        ConnectScreen(){
+        ConnectScreen {
             showConnectScreen.value = false
         }
     } else {
-
+        ControlScreen(
+            onDisconnect = {
+                TemporaryData.connectedDeviceName = ""
+                showConnectScreen.value = true
+            }
+        )
     }
 }
 
 
 @Composable
-fun ConnectScreen(onclick: () -> Unit) {
+fun ConnectScreen(onConnect: () -> Unit) {
     val clickedCard: MutableState<Int?> = remember {
         mutableStateOf(null)
     }
     Scaffold(
         topBar = {
-            Text(
-                text = "Pick your Microcontroller to connect to!",
-                fontSize =  20.sp,
-                modifier = Modifier.padding(top = 30.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Spacer(modifier = Modifier.height(30.dp))
+                Title(
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+
         },
         bottomBar = {
             Button(
-                onClick = onclick,
+                enabled = clickedCard.value != null,
+                onClick = {
+                    onConnect()
+                    TemporaryData.connectedDeviceName = clickedCard.value.toString()
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Connect to device" + if (clickedCard.value != null) ": " + clickedCard.value else "")
@@ -268,13 +256,13 @@ fun ConnectScreen(onclick: () -> Unit) {
         ) {
             items(10) {index ->
                 TestCard(
-                    text = "Card Number: " + index.toString(),
+                    text = "Card Number: $index",
                     modifier = Modifier
                         .padding(10.dp)
                         .height(50.dp)
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.primaryContainer),
-                    clicked = if (index == clickedCard.value) true else false
+                    clicked = index == clickedCard.value
                 ) {
                     clickedCard.value = index
                 }
@@ -285,7 +273,7 @@ fun ConnectScreen(onclick: () -> Unit) {
 }
 
 @Composable
-fun ControlScreen(device: String = "None",onclick: () -> Unit) {
+fun ControlScreen(onDisconnect: () -> Unit) {
     Scaffold(
         topBar = {
                  Column(
@@ -293,7 +281,7 @@ fun ControlScreen(device: String = "None",onclick: () -> Unit) {
                  ) {
                      Spacer(Modifier.height(40.dp))
                      Text(
-                         text = "connected to device: " + device,
+                         text = "connected to device: ${TemporaryData.connectedDeviceName}",
                          modifier = Modifier.align(Alignment.CenterHorizontally)
                          )
                  }
@@ -301,7 +289,8 @@ fun ControlScreen(device: String = "None",onclick: () -> Unit) {
         bottomBar = {
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = {onclick}) {
+                onClick = onDisconnect
+            ) {
                 Text(
                     text = "Disconnect"
                 )
@@ -350,25 +339,19 @@ fun DirectionalInput(direction: String = "") {
         interactionSource = interActionSource,
         onClick = {},
         shape = RectangleShape,
+        colors = ButtonDefaults.buttonColors(containerColor = if (isPressed) Color.Gray else Color.LightGray),
         modifier = Modifier
-            .background(if (isPressed) Color.Gray else Color.LightGray)
             .size(90.dp)
     ) {
-        var icon: ImageVector
-        when (direction) {
-            "left" -> icon = Icons.Default.KeyboardArrowLeft
-            "right" -> icon = Icons.Default.KeyboardArrowRight
-            "up" -> icon = Icons.Default.KeyboardArrowUp
-            "down" -> icon = Icons.Default.KeyboardArrowDown
-            else -> icon = Icons.Default.AddCircle
+        val icon = when (direction) {
+            "left" -> Icons.Default.KeyboardArrowLeft
+            "right" -> Icons.Default.KeyboardArrowRight
+            "up" -> Icons.Default.KeyboardArrowUp
+            "down" -> Icons.Default.KeyboardArrowDown
+            else -> Icons.Default.AddCircle
         }
-        androidx.compose.material3.Icon(imageVector = icon, contentDescription = "arrow pointing" + direction)
+        androidx.compose.material3.Icon(imageVector = icon, contentDescription = "arrow pointing $direction")
     }
-}
-
-
-fun SetUpBluetooth() {
-
 }
 
 
@@ -377,7 +360,7 @@ fun SetUpBluetooth() {
 fun GreetingPreview() {
     BluetoothWiFiControllerTheme {
         ControlScreen {
-            1 + 1;
+
         }
     }
 }
