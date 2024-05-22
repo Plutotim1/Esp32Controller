@@ -1,9 +1,18 @@
 package com.example.bluetoothwificontroller
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -46,110 +55,104 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.bluetoothwificontroller.ui.theme.BluetoothWiFiControllerTheme
 
+//directions
+const val LEFT: Byte = 0
+const val RIGHT: Byte = 1
+const val UP: Byte = 2
+const val DOWN: Byte = 3
+const val NO_DIRECTION: Byte = 4
+
 
 class MainActivity : ComponentActivity() {
 
-    //val ENABLE_BT_CODE = 2
-    //var permissionsAccepted = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        /*
+
         val bluetoothManager: BluetoothManager = getSystemService(BluetoothManager::class.java)
-        val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.getAdapter()
+        val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.adapter
         if (bluetoothAdapter == null) {
-            ErrorMessage("bluetooth adapter not available")
+            errorMessage("bluetooth adapter not available")
             return
         }
+        TemporaryData.bluetoothAdapter = bluetoothAdapter
 
-        SetUpBluetoothPermissions(
-        */
-
-        setContent {
-            BluetoothWiFiControllerTheme {
-                MainView()
-            }
-        }
-    }
-    /*
-
-    //called after permissions are either granted or rejected
-    fun StartApp() {
-        if (permissionsAccepted) {
+        //check permissions
+        if ( checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
+            checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
+            // permissions are granted
+            TemporaryData.bluetoothAdapter = bluetoothAdapter
             setContent {
                 BluetoothWiFiControllerTheme {
                     MainView()
                 }
             }
         } else {
-            ErrorMessage("This app needs the requested permissions to function")
+            //ask for permissions
+            val requestPermissionsLauncher = registerForActivityResult(
+                ActivityResultContracts.RequestMultiplePermissions() )
+            {permissions ->
+                var accepted = true
+                if (!permissions.getOrDefault(Manifest.permission.BLUETOOTH_SCAN, false)) {
+                    accepted = false
+                }
+                if (!permissions.getOrDefault(Manifest.permission.BLUETOOTH_CONNECT, false)) {
+                    accepted = false
+                }
+
+                if (accepted) {
+                    //permissions are granted
+                    TemporaryData.bluetoothAdapter = bluetoothAdapter
+                    setContent {
+                        BluetoothWiFiControllerTheme {
+                            MainView()
+                        }
+                    }
+                } else {
+                    //permissions were denied
+                    setContent {
+                        BluetoothWiFiControllerTheme {
+                            errorMessage("This App needs bluetooth permissions to function, please enable them")
+                        }
+                    }
+                }
+
+            }
+
+            requestPermissionsLauncher.launch(arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT))
+
         }
+
+
+
+
+
+
     }
-    */
 
 
-    fun ErrorMessage(message: String) {
+
+
+    private fun errorMessage(message: String) {
         setContent {
             BluetoothWiFiControllerTheme {
-                Text(
-                    text = message,
-                    modifier = Modifier.padding(50.dp)
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Text(
+                        text = message,
 
-                )
-            }
-        }
-    }
+                        modifier = Modifier
+                            .padding(50.dp)
+                            .align(Alignment.Center)
 
-    /*
-    fun SetUpBluetoothPermissions() {
-        when {
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.BLUETOOTH_CONNECT
-            ) == PackageManager.PERMISSION_GRANTED -> {
-                permissionsAccepted = true
-                StartApp()
-            }
-            else -> {
-                requestPermissions(arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN), ENABLE_BT_CODE)
-            }
-        }
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int,
-                                            permissions: Array<String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        when (requestCode) {
-            ENABLE_BT_CODE
-
-            -> {
-                // If request is cancelled, the result arrays are empty.
-                if ((grantResults.isNotEmpty() &&
-                            grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                    // Permission is granted. Continue the action or workflow
-                    // in your app.
-                    permissionsAccepted = true
-                } else {
-                    // Explain to the user that the feature is unavailable because
-                    // the feature requires a permission that the user has denied.
-                    // At the same time, respect the user's decision. Don't link to
-                    // system settings in an effort to convince the user to change
-                    // their decision.
-                    permissionsAccepted = false
+                    )
                 }
-                StartApp()
-                return
-            }
 
-            // Add other 'when' lines to check for other
-            // permissions this app might request.
-            else -> {
-                // Ignore all other requests.
             }
         }
     }
-     */
 }
 
 @Composable
@@ -161,11 +164,11 @@ fun Title(modifier: Modifier = Modifier) {
     )
 }
 
-//will be replaced with a clickable element, showing basic information about a bluetooth device. Clicking will try to connect  to the device
+@SuppressLint("MissingPermission")
 @Composable
 fun TestCard(
+    device: BluetoothDevice,
     modifier: Modifier = Modifier,
-    text: String = "Test",
     clicked: Boolean = false,
     onclick: () -> Unit
 ) {
@@ -178,14 +181,14 @@ fun TestCard(
     ) {
         if (clicked) {
             Text(
-                text = "selected",
+                text = """selected: ${device.name}""",
                 fontSize = 30.sp,
                 modifier = Modifier
                     .fillMaxWidth(),
             )
         } else {
             Text(
-                text = text,
+                text = device.name,
                 fontSize =  30.sp,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -194,6 +197,7 @@ fun TestCard(
     }
 }
 
+@SuppressLint("MissingPermission")
 @Composable
 fun MainView() {
     val showConnectScreen = remember {
@@ -202,12 +206,11 @@ fun MainView() {
 
     if (showConnectScreen.value) {
         ConnectScreen {
-            showConnectScreen.value = false
         }
     } else {
         ControlScreen(
             onDisconnect = {
-                TemporaryData.connectedDeviceName = ""
+                TemporaryData.connectedDevice = null
                 showConnectScreen.value = true
             }
         )
@@ -215,10 +218,23 @@ fun MainView() {
 }
 
 
+@SuppressLint("MissingPermission")
 @Composable
 fun ConnectScreen(onConnect: () -> Unit) {
     val clickedCard: MutableState<Int?> = remember {
         mutableStateOf(null)
+    }
+    val shouldUpdate = remember {
+        mutableStateOf(true)
+    }
+    val devices = remember {
+        mutableStateOf(emptySet<BluetoothDevice>())
+    }
+    if (shouldUpdate.value) {
+        if (TemporaryData.bluetoothAdapter?.isDiscovering == false) {
+            TemporaryData.bluetoothAdapter!!.startDiscovery()
+            devices.value = TemporaryData.bluetoothAdapter!!.bondedDevices
+        }
     }
     Scaffold(
         topBar = {
@@ -236,13 +252,23 @@ fun ConnectScreen(onConnect: () -> Unit) {
             Button(
                 enabled = clickedCard.value != null,
                 onClick = {
+                    TemporaryData.bluetoothAdapter?.cancelDiscovery()
+                    val device = devices.value.elementAt(clickedCard.value!!)
+                    val socket = device.createRfcommSocketToServiceRecord(device.uuids[0].uuid)
+                    TemporaryData.connectedThread = BluetoothConnection(Handler(Looper.getMainLooper())).ConnectedThread(socket)
+                    TemporaryData.connectedThread!!.start()
                     onConnect()
-                    TemporaryData.connectedDeviceName = clickedCard.value.toString()
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Connect to device" + if (clickedCard.value != null) ": " + clickedCard.value else "")
+                Text("Connect to device" +
+                    if (clickedCard.value != null) ": " + devices.value.elementAt(clickedCard.value!!).name else "")
             }
+        },
+        floatingActionButton = {
+                               Button(onClick = {shouldUpdate.value = true}) {
+                                   Text("update!")
+                               }
         },
         modifier = Modifier
             .fillMaxSize()
@@ -254,17 +280,19 @@ fun ConnectScreen(onConnect: () -> Unit) {
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.secondaryContainer)
         ) {
-            items(10) {index ->
-                TestCard(
-                    text = "Card Number: $index",
-                    modifier = Modifier
-                        .padding(10.dp)
-                        .height(50.dp)
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    clicked = index == clickedCard.value
-                ) {
-                    clickedCard.value = index
+            if (devices.value.isNotEmpty()) {
+                items(devices.value.size) { index ->
+                    TestCard(
+                        device = devices.value.elementAt(index),
+                        modifier = Modifier
+                            .padding(10.dp)
+                            .height(50.dp)
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.primaryContainer),
+                        clicked = index == clickedCard.value
+                    ) {
+                        clickedCard.value = index
+                    }
                 }
             }
         }
@@ -272,6 +300,7 @@ fun ConnectScreen(onConnect: () -> Unit) {
 
 }
 
+@SuppressLint("MissingPermission")
 @Composable
 fun ControlScreen(onDisconnect: () -> Unit) {
     Scaffold(
@@ -281,7 +310,7 @@ fun ControlScreen(onDisconnect: () -> Unit) {
                  ) {
                      Spacer(Modifier.height(40.dp))
                      Text(
-                         text = "connected to device: ${TemporaryData.connectedDeviceName}",
+                         text = "connected to device: ${TemporaryData.connectedDevice?.name}",
                          modifier = Modifier.align(Alignment.CenterHorizontally)
                          )
                  }
@@ -309,13 +338,13 @@ fun ControlScreen(onDisconnect: () -> Unit) {
                         .matchParentSize()
                 ) {
                     Spacer(Modifier.height(250.dp))
-                    DirectionalInput("up")
+                    DirectionalInput(UP)
                     Row{
-                        DirectionalInput("left")
+                        DirectionalInput(LEFT)
                         DirectionalInput()
-                        DirectionalInput("right")
+                        DirectionalInput(RIGHT)
                     }
-                    DirectionalInput("down")
+                    DirectionalInput(DOWN)
                 }
             }
     }
@@ -323,7 +352,7 @@ fun ControlScreen(onDisconnect: () -> Unit) {
 
 
 @Composable
-fun DirectionalInput(direction: String = "") {
+fun DirectionalInput(direction: Byte = NO_DIRECTION) {
     val interActionSource = remember {
         MutableInteractionSource()
     }
@@ -333,6 +362,12 @@ fun DirectionalInput(direction: String = "") {
     }
     if (isActive.value != isPressed) {
         //emitSignal(isPressed)
+        val data = arrayOf<Byte>(
+            'd'.code.toByte(),
+            direction,
+            if (isPressed) 1 else 0
+        ).toByteArray()
+        TemporaryData.connectedThread!!.write(data)
         isActive.value = isPressed
     }
     Button(
@@ -344,10 +379,10 @@ fun DirectionalInput(direction: String = "") {
             .size(90.dp)
     ) {
         val icon = when (direction) {
-            "left" -> Icons.Default.KeyboardArrowLeft
-            "right" -> Icons.Default.KeyboardArrowRight
-            "up" -> Icons.Default.KeyboardArrowUp
-            "down" -> Icons.Default.KeyboardArrowDown
+            LEFT -> Icons.Default.KeyboardArrowLeft
+            RIGHT -> Icons.Default.KeyboardArrowRight
+            UP -> Icons.Default.KeyboardArrowUp
+            DOWN -> Icons.Default.KeyboardArrowDown
             else -> Icons.Default.AddCircle
         }
         androidx.compose.material3.Icon(imageVector = icon, contentDescription = "arrow pointing $direction")
@@ -357,10 +392,19 @@ fun DirectionalInput(direction: String = "") {
 
 @Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
+fun ConnectScreenPreview() {
     BluetoothWiFiControllerTheme {
         ControlScreen {
 
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ControlScreenPreview() {
+    BluetoothWiFiControllerTheme {
+        ConnectScreen {
         }
     }
 }
