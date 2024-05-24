@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -206,6 +207,7 @@ fun MainView() {
 
     if (showConnectScreen.value) {
         ConnectScreen {
+            showConnectScreen.value = false
         }
     } else {
         ControlScreen(
@@ -253,11 +255,15 @@ fun ConnectScreen(onConnect: () -> Unit) {
                 enabled = clickedCard.value != null,
                 onClick = {
                     TemporaryData.bluetoothAdapter?.cancelDiscovery()
+                    Log.d("myApp", "Canceled Discovery")
                     val device = devices.value.elementAt(clickedCard.value!!)
-                    val socket = device.createRfcommSocketToServiceRecord(device.uuids[0].uuid)
-                    TemporaryData.connectedThread = BluetoothConnection(Handler(Looper.getMainLooper())).ConnectedThread(socket)
+                    TemporaryData.connectedDevice = device
+                    TemporaryData.connectedThread = BluetoothConnection(Handler(Looper.getMainLooper())).ConnectedThread(device)
+                    Log.d("myApp", "Initialized Thread")
                     TemporaryData.connectedThread!!.start()
+                    Log.d("myApp", "Started Thread")
                     onConnect()
+                    Log.d("Myapp", "onConnect called")
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
