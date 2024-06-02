@@ -8,7 +8,7 @@ import android.bluetooth.BluetoothManager
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
-import android.os.Looper
+import android.os.Message
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -65,7 +66,6 @@ const val NO_DIRECTION: Byte = 4
 
 
 class MainActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -77,6 +77,9 @@ class MainActivity : ComponentActivity() {
             errorMessage("bluetooth adapter not available")
             return
         }
+
+
+
         TemporaryData.bluetoothAdapter = bluetoothAdapter
 
         //check permissions
@@ -141,20 +144,22 @@ class MainActivity : ComponentActivity() {
                 Box(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    Text(
-                        text = message,
 
-                        modifier = Modifier
-                            .padding(50.dp)
-                            .align(Alignment.Center)
+                        Text(
+                            text = message,
 
-                    )
+                            modifier = Modifier
+                                .padding(50.dp)
+                                .align(Alignment.Center)
+                        )
                 }
 
             }
         }
     }
 }
+
+var handler: Handler? = null
 
 @Composable
 fun Title(modifier: Modifier = Modifier) {
@@ -205,10 +210,47 @@ fun MainView() {
         mutableStateOf(true)
     }
 
-    if (showConnectScreen.value) {
+    val showErrorScreen = remember {
+        mutableStateOf<String?>(null)
+    }
+
+    val showLoadingScreen = remember {
+        mutableStateOf(false)
+    }
+
+    handler = object : Handler() {
+        override fun handleMessage(msg: Message) {
+            when(msg.data.getInt("error")) {
+                -1 -> {
+                    Log.d("MyApp", "handler error callback called code: -1")
+                    TemporaryData.connectedThread?.cancel()
+                    TemporaryData.connectedDevice = null
+                    showErrorScreen.value = "Couldn't connect to device"
+                    showLoadingScreen.value = false
+                }
+            }
+            when(msg.data.getInt("action")) {
+                1 -> {
+                    Log.d("Myapp", "Loading screen over")
+                    showLoadingScreen.value = false
+                }
+            }
+        }
+    }
+
+    if (showErrorScreen.value != null) {
+        Log.d("Myapp", "errorscreen called!")
+        ErrorScreen(text = showErrorScreen.value!!) {
+            showErrorScreen.value = null
+            showConnectScreen.value = true
+        }
+    }else if (showConnectScreen.value) {
         ConnectScreen {
             showConnectScreen.value = false
+            showLoadingScreen.value = true
         }
+    } else if (showLoadingScreen.value) {
+        LoadingScreen()
     } else {
         ControlScreen(
             onDisconnect = {
@@ -216,6 +258,25 @@ fun MainView() {
                 showConnectScreen.value = true
             }
         )
+    }
+}
+
+@Composable
+fun ErrorScreen (text: String, onclick: () -> Unit) {
+    Column(
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(30.dp)
+        )
+        Button(onClick = onclick) {
+            Text(
+                "Ok"
+            )
+        }
     }
 }
 
@@ -254,14 +315,22 @@ fun ConnectScreen(onConnect: () -> Unit) {
             Button(
                 enabled = clickedCard.value != null,
                 onClick = {
+                    //cancel discovery
                     TemporaryData.bluetoothAdapter?.cancelDiscovery()
                     Log.d("myApp", "Canceled Discovery")
+                    //get device
                     val device = devices.value.elementAt(clickedCard.value!!)
                     TemporaryData.connectedDevice = device
-                    TemporaryData.connectedThread = BluetoothConnection(Handler(Looper.getMainLooper())).ConnectedThread(device)
+
+                    //create bluetooth thread
+                    TemporaryData.connectedThread = BluetoothConnection(handler!!).ConnectedThread(device)
                     Log.d("myApp", "Initialized Thread")
+
+                    //start bluetooth connection
                     TemporaryData.connectedThread!!.start()
                     Log.d("myApp", "Started Thread")
+
+                    //transition to control ui screen
                     onConnect()
                     Log.d("Myapp", "onConnect called")
                 },
@@ -305,6 +374,21 @@ fun ConnectScreen(onConnect: () -> Unit) {
     }
 
 }
+
+@Composable
+fun LoadingScreen() {
+    Column(
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxSize()
+    ){
+        androidx.compose.material3.Icon(imageVector = Icons.Default.Refresh, contentDescription ="loading icon")
+        Text(
+            "Connecting to Device"
+        )
+    }
+}
+
 
 @SuppressLint("MissingPermission")
 @Composable

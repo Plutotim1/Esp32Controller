@@ -4,7 +4,9 @@ package com.example.bluetoothwificontroller
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
+import android.os.Bundle
 import android.os.Handler
+import android.os.Message
 import android.util.Log
 import java.io.IOException
 import java.io.InputStream
@@ -31,19 +33,35 @@ class BluetoothConnection(
 
         @SuppressLint("MissingPermission")
         override fun run() {
-            //initialize connecteion
+            //initialize connection
             Log.d("myAppBT", "run called")
-            socket = device.createRfcommSocketToServiceRecord(device.uuids[0].uuid)
-            Log.d("myAppBT", "socket created")
-            socket.connect()
-            Log.d("myAppBT", "socket connected")
-            if (!socket.isConnected) {
-                Log.d("myAppBT", "Socket couldn't connect")
+            try {
+                socket = device.createRfcommSocketToServiceRecord(device.uuids[0].uuid)
+                Log.d("myAppBT", "socket created")
+            } catch (e: IOException) {
+                Log.d("myAppBT", "Couldn't create socket")
+                SendErrorCode(-1)
                 return
             }
+            try {
+                socket.connect()
+                Log.d("myAppBT", "socket connected")
+            } catch(e: IOException) {
+                Log.d("myAppBT", "socket connection error")
+                if (socket.isConnected) {
+                    Log.d("myAppBT", "trying to disconnect from socket after failed connection")
+                    socket.close()
+                }
+                SendErrorCode(-1)
+                return
+            }
+
             mmInStream = socket.inputStream
             mmOutStream = socket.outputStream
             Log.d("myApp", "Setup completed")
+
+            //tell main-activity to load the control screen
+            SendActionCode(1)
 
 
             var numBytes: Int // bytes returned from read()
@@ -64,6 +82,22 @@ class BluetoothConnection(
                     mmBuffer)
                 readMsg.sendToTarget()
             }
+        }
+
+        private fun SendErrorCode(code: Int) {
+            val data = Bundle()
+            data.putInt("error", code)
+            val message = Message.obtain()
+            message.data = data
+            handler.dispatchMessage(message)
+        }
+
+        private fun SendActionCode(code: Int) {
+            val data = Bundle()
+            data.putInt("action", code)
+            val message = Message.obtain()
+            message.data = data
+            handler.dispatchMessage(message)
         }
 
         // Call this from the main activity to send data to the remote device.
