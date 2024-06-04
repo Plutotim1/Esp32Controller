@@ -14,6 +14,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.InfiniteRepeatableSpec
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.TweenSpec
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -50,8 +57,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.focusModifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -386,11 +398,40 @@ fun LoadingScreen() {
         modifier = Modifier.fillMaxSize()
     ){
         //TODO add animation
-        androidx.compose.material3.Icon(imageVector = Icons.Default.Refresh, contentDescription ="loading icon")
-        Text(
-            "Connecting to Device"
-        )
+        SpinningIcon(id = R.drawable.loading_icon, modifier = Modifier.scale(2f))
+        Spacer(modifier = Modifier.height(50.dp))
+        Text("Connecting")
     }
+}
+
+@Composable
+fun SpinningIcon(id: Int, modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition()
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = InfiniteRepeatableSpec(
+            animation = TweenSpec(
+                durationMillis = 750,
+                easing = LinearEasing
+            ),
+            repeatMode = RepeatMode.Restart
+        )
+    )
+
+    /*androidx.compose.material3.Icon(
+        imageVector = icon,
+        contentDescription ="spinning loading icon",
+        modifier = Modifier.rotate(rotation)
+    )*/
+
+    Image(
+        painter = painterResource(id = id),
+        contentDescription = "spinning icon",
+        modifier = modifier.rotate(rotation)
+    )
+
+
 }
 
 
