@@ -254,6 +254,7 @@ fun MainView() {
     } else {
         ControlScreen(
             onDisconnect = {
+                //TODO make work
                 TemporaryData.connectedDevice = null
                 showConnectScreen.value = true
             }
@@ -341,6 +342,7 @@ fun ConnectScreen(onConnect: () -> Unit) {
             }
         },
         floatingActionButton = {
+            //TODO make it work
                                Button(onClick = {shouldUpdate.value = true}) {
                                    Text("update!")
                                }
@@ -382,6 +384,7 @@ fun LoadingScreen() {
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxSize()
     ){
+        //TODO add animation
         androidx.compose.material3.Icon(imageVector = Icons.Default.Refresh, contentDescription ="loading icon")
         Text(
             "Connecting to Device"
