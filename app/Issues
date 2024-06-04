@@ -1,5 +1,3 @@
 -bonded devices don't refresh if bluetooth wasn't enabled on startup
 
--app has to be restarted after disconnecting
-
 -loading animation missing

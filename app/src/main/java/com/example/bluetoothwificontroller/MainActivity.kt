@@ -255,6 +255,7 @@ fun MainView() {
         ControlScreen(
             onDisconnect = {
                 //TODO make work
+                TemporaryData.connectedThread?.cancel()
                 TemporaryData.connectedDevice = null
                 showConnectScreen.value = true
             }
