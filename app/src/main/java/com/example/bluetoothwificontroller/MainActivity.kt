@@ -2,9 +2,11 @@ package com.example.bluetoothwificontroller
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Instrumentation.ActivityResult
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
@@ -13,6 +15,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.InfiniteRepeatableSpec
 import androidx.compose.animation.core.LinearEasing
@@ -98,12 +101,7 @@ class MainActivity : ComponentActivity() {
         if ( checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
             checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
             // permissions are granted
-            TemporaryData.bluetoothAdapter = bluetoothAdapter
-            setContent {
-                BluetoothWiFiControllerTheme {
-                    MainView()
-                }
-            }
+            PermissionSuccess()
         } else {
             //ask for permissions
             val requestPermissionsLauncher = registerForActivityResult(
@@ -118,13 +116,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 if (accepted) {
-                    //permissions are granted
-                    TemporaryData.bluetoothAdapter = bluetoothAdapter
-                    setContent {
-                        BluetoothWiFiControllerTheme {
-                            MainView()
-                        }
-                    }
+                    PermissionSuccess()
                 } else {
                     //permissions were denied
                     setContent {
@@ -145,6 +137,23 @@ class MainActivity : ComponentActivity() {
 
 
 
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun PermissionSuccess() {
+        //permissions were granted
+        //TODO use new API
+        if (!TemporaryData.bluetoothAdapter?.isEnabled!!) {
+            startActivityForResult(
+                Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE),
+                1
+            )
+        }
+        setContent {
+            BluetoothWiFiControllerTheme {
+                MainView()
+            }
+        }
     }
 
 
