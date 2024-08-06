@@ -5,7 +5,10 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
@@ -81,6 +84,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
 
+        //register receiver for scanning bluetooth devices
+        val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
+        registerReceiver(receiver, filter)
+
+
         val bluetoothManager: BluetoothManager = getSystemService(BluetoothManager::class.java)
         val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.adapter
         if (bluetoothAdapter == null) {
@@ -134,6 +142,33 @@ class MainActivity : ComponentActivity() {
 
     }
 
+
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterReceiver(receiver)
+    }
+
+
+    // Create a BroadcastReceiver for ACTION_FOUND.
+    private val receiver = object : BroadcastReceiver() {
+
+        override fun onReceive(context: Context, intent: Intent) {
+            val action: String = intent.action!!
+            when(action) {
+                BluetoothDevice.ACTION_FOUND -> {
+                    // Discovery has found a device. Get the BluetoothDevice
+                    // object and its info from the Intent.
+                    val device: BluetoothDevice? =
+                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                    if (device != null) {
+                        TemporaryData.scannedDevices.add(device)
+                    }
+                }
+            }
+        }
+    }
+
+
     @SuppressLint("MissingPermission")
     private fun PermissionSuccess() {
         //permissions were granted
@@ -149,6 +184,7 @@ class MainActivity : ComponentActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == 1 && resultCode == RESULT_OK) {
+            TemporaryData.bluetoothAdapter?.startDiscovery()
             setContent {
                 BluetoothWiFiControllerTheme {
                     MainView()
