@@ -180,9 +180,16 @@ class MainActivity : ComponentActivity() {
                 1
             )
         }
+        else {
+            TemporaryData.bluetoothAdapter?.startDiscovery()
+            setContent {
+                BluetoothWiFiControllerTheme {
+                    MainView()
+                }
+            }
+        }
     }
 
-    @SuppressLint("MissingPermission")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == 1 && resultCode == RESULT_OK) {
@@ -262,14 +269,14 @@ fun TestCard(
     ) {
         if (clicked) {
             Text(
-                text = """selected: ${device.name}""",
+                text = """selected: ${if (device.name != null) device.name else "unknown"}""",
                 fontSize = 30.sp,
                 modifier = Modifier
                     .fillMaxWidth(),
             )
         } else {
             Text(
-                text = device.name,
+                text = if (device.name != null) device.name else "unknown",
                 fontSize =  30.sp,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -364,17 +371,28 @@ fun ConnectScreen(onConnect: () -> Unit) {
     val clickedCard: MutableState<Int?> = remember {
         mutableStateOf(null)
     }
+    //0 for paired device, 1 for scanned Device
+    val clickedCardType = remember {
+        mutableStateOf(0)
+    }
     val shouldUpdate = remember {
         mutableStateOf(true)
     }
-    val devices = remember {
+    val bondedDevices = remember {
+        mutableStateOf(emptySet<BluetoothDevice>())
+    }
+    val scannedDevices = remember {
         mutableStateOf(emptySet<BluetoothDevice>())
     }
     if (shouldUpdate.value) {
         if (TemporaryData.bluetoothAdapter?.isDiscovering == false) {
             TemporaryData.bluetoothAdapter!!.startDiscovery()
-            devices.value = TemporaryData.bluetoothAdapter!!.bondedDevices
         }
+        bondedDevices.value = TemporaryData.bluetoothAdapter!!.bondedDevices
+        scannedDevices.value = TemporaryData.scannedDevices
+        Log.d("ble", TemporaryData.scannedDevices.toString())
+        Log.d("ble", TemporaryData.bluetoothAdapter?.bondedDevices.toString())
+        shouldUpdate.value = false
     }
     Scaffold(
         topBar = {
@@ -396,7 +414,7 @@ fun ConnectScreen(onConnect: () -> Unit) {
                     TemporaryData.bluetoothAdapter?.cancelDiscovery()
                     Log.d("myApp", "Canceled Discovery")
                     //get device
-                    val device = devices.value.elementAt(clickedCard.value!!)
+                    val device = bondedDevices.value.elementAt(clickedCard.value!!)
                     TemporaryData.connectedDevice = device
 
                     //create bluetooth thread
@@ -414,7 +432,11 @@ fun ConnectScreen(onConnect: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Connect to device" +
-                    if (clickedCard.value != null) ": " + devices.value.elementAt(clickedCard.value!!).name else "")
+                    if (clickedCard.value != null)
+                            (": " + if (clickedCardType.value == 0) bondedDevices.value.elementAt(clickedCard.value!!).name else scannedDevices.value.elementAt(
+                                clickedCard.value!!
+                            ).name )
+                    else "")
             }
         },
         floatingActionButton = {
@@ -426,29 +448,59 @@ fun ConnectScreen(onConnect: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
     ) {paddingValues ->
-        LazyColumn(
-            contentPadding = PaddingValues(top = 24.dp, bottom = 24.dp),
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.secondaryContainer)
-        ) {
-            if (devices.value.isNotEmpty()) {
-                items(devices.value.size) { index ->
-                    TestCard(
-                        device = devices.value.elementAt(index),
-                        modifier = Modifier
-                            .padding(10.dp)
-                            .height(50.dp)
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        clicked = index == clickedCard.value
-                    ) {
-                        clickedCard.value = index
+        Column {
+            Text(text = "paired Devices")
+            LazyColumn(
+                contentPadding = PaddingValues(top = 24.dp, bottom = 24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(paddingValues)
+                    .background(MaterialTheme.colorScheme.secondaryContainer)
+            ) {
+                if (bondedDevices.value.isNotEmpty()) {
+                    items(bondedDevices.value.size) { index ->
+                        TestCard(
+                            device = bondedDevices.value.elementAt(index),
+                            modifier = Modifier
+                                .padding(10.dp)
+                                .height(50.dp)
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            clicked = index == clickedCard.value
+                        ) {
+                            clickedCard.value = index
+                            clickedCardType.value = 0
+                        }
+                    }
+                }
+            }
+            Text(text = "Nearby devices")
+            LazyColumn(
+                contentPadding = PaddingValues(top = 24.dp, bottom = 24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(paddingValues)
+                    .background(MaterialTheme.colorScheme.secondaryContainer)
+            ) {
+                if (scannedDevices.value.isNotEmpty()) {
+                    items(scannedDevices.value.size) { index ->
+                        TestCard(
+                            device = scannedDevices.value.elementAt(index),
+                            modifier = Modifier
+                                .padding(10.dp)
+                                .height(50.dp)
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            clicked = index == clickedCard.value
+                        ) {
+                            clickedCard.value = index
+                            clickedCardType.value = 1
+                        }
                     }
                 }
             }
         }
+        
     }
 
 }
