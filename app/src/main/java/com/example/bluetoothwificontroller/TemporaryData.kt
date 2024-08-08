@@ -10,5 +10,6 @@ class TemporaryData {
         var connectedDevice: BluetoothDevice? = null
         var bluetoothAdapter: BluetoothAdapter? = null
         var connectedThread: BluetoothConnection.ConnectedThread? = null
+        var unknownDeviceCount: Int = 0;
     }
 }

@@ -153,6 +153,7 @@ class MainActivity : ComponentActivity() {
     // Create a BroadcastReceiver for ACTION_FOUND.
     private val receiver = object : BroadcastReceiver() {
 
+        @SuppressLint("MissingPermission")
         override fun onReceive(context: Context, intent: Intent) {
             val action: String = intent.action!!
             when(action) {
@@ -162,7 +163,13 @@ class MainActivity : ComponentActivity() {
                     val device: BluetoothDevice? =
                         intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
                     if (device != null) {
+                        //replace true with a setting which decides wether to show unknown devices
+                        if (true && device.name == null) {
+                            TemporaryData.unknownDeviceCount++
+                            return
+                        }
                         TemporaryData.scannedDevices.add(device)
+
                     }
                 }
             }
@@ -170,11 +177,24 @@ class MainActivity : ComponentActivity() {
     }
 
 
-    @SuppressLint("MissingPermission")
     private fun PermissionSuccess() {
         //permissions were granted
         //TODO use new API
         if (!TemporaryData.bluetoothAdapter?.isEnabled!!) {
+            if (ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                return
+            }
             startActivityForResult(
                 Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE),
                 1
@@ -251,6 +271,7 @@ fun Title(modifier: Modifier = Modifier) {
         modifier = modifier
     )
 }
+
 
 @SuppressLint("MissingPermission")
 @Composable
@@ -414,7 +435,10 @@ fun ConnectScreen(onConnect: () -> Unit) {
                     TemporaryData.bluetoothAdapter?.cancelDiscovery()
                     Log.d("myApp", "Canceled Discovery")
                     //get device
-                    val device = bondedDevices.value.elementAt(clickedCard.value!!)
+                    val device =
+                        if (clickedCardType.value == 0) bondedDevices.value.elementAt(clickedCard.value!!)
+                        else scannedDevices.value.elementAt(clickedCard.value!!)
+
                     TemporaryData.connectedDevice = device
 
                     //create bluetooth thread
@@ -466,7 +490,7 @@ fun ConnectScreen(onConnect: () -> Unit) {
                                 .height(50.dp)
                                 .fillMaxWidth()
                                 .background(MaterialTheme.colorScheme.primaryContainer),
-                            clicked = index == clickedCard.value
+                            clicked = (index == clickedCard.value && clickedCardType.value == 0)
                         ) {
                             clickedCard.value = index
                             clickedCardType.value = 0
@@ -474,7 +498,14 @@ fun ConnectScreen(onConnect: () -> Unit) {
                     }
                 }
             }
-            Text(text = "Nearby devices")
+            Box(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(text = "Nearby devices", modifier = Modifier.align(Alignment.TopStart))
+                Text(text = "unknown devices:" + TemporaryData.unknownDeviceCount.toString(), modifier = Modifier.align(Alignment.TopEnd))
+
+            }
+
             LazyColumn(
                 contentPadding = PaddingValues(top = 24.dp, bottom = 24.dp),
                 modifier = Modifier
@@ -491,7 +522,7 @@ fun ConnectScreen(onConnect: () -> Unit) {
                                 .height(50.dp)
                                 .fillMaxWidth()
                                 .background(MaterialTheme.colorScheme.primaryContainer),
-                            clicked = index == clickedCard.value
+                            clicked = (index == clickedCard.value && clickedCardType.value == 1)
                         ) {
                             clickedCard.value = index
                             clickedCardType.value = 1
