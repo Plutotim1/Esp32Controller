@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--Bluetooth permissions-->
+    <uses-feature android:name="android.hardware.bluetooth" android:required="true"/>
+
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+
+
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
 
     <application
         android:allowBackup="true"
@@ -11,11 +22,10 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.BluetoothWiFiController"
-        tools:targetApi="31">
+        >
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
             android:theme="@style/Theme.BluetoothWiFiController">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -24,16 +34,5 @@
             </intent-filter>
         </activity>
     </application>
-
-    <!--Bluetooth permissions-->
-    <uses-feature android:name="android.hardware.bluetooth" android:required="true"/>
-
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
-        android:usesPermissionFlags="neverForLocation"></uses-permission>
-
-
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"></uses-permission>
-
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
 
 </manifest>

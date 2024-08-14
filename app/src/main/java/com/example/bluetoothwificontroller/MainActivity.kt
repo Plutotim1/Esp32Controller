@@ -56,6 +56,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -105,7 +106,7 @@ class MainActivity : ComponentActivity() {
         if ( checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
             checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
             // permissions are granted
-            PermissionSuccess()
+            permissionSuccess()
         } else {
             //ask for permissions
             val requestPermissionsLauncher = registerForActivityResult(
@@ -120,7 +121,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 if (accepted) {
-                    PermissionSuccess()
+                    permissionSuccess()
                 } else {
                     //permissions were denied
                     setContent {
@@ -163,7 +164,8 @@ class MainActivity : ComponentActivity() {
                     val device: BluetoothDevice? =
                         intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
                     if (device != null) {
-                        //replace true with a setting which decides wether to show unknown devices
+                        //TODO
+                        //replace true with a setting which decides whether to show unknown devices
                         if (true && device.name == null) {
                             TemporaryData.unknownDeviceCount++
                             return
@@ -177,9 +179,8 @@ class MainActivity : ComponentActivity() {
     }
 
 
-    private fun PermissionSuccess() {
+    private fun permissionSuccess() {
         //permissions were granted
-        //TODO use new API
         if (!TemporaryData.bluetoothAdapter?.isEnabled!!) {
             if (ActivityCompat.checkSelfPermission(
                     this,
@@ -342,7 +343,7 @@ fun MainView() {
     }
 
     if (showErrorScreen.value != null) {
-        Log.d("Myapp", "errorscreen called!")
+        Log.d("Myapp", "error screen called!")
         ErrorScreen(text = showErrorScreen.value!!) {
             showErrorScreen.value = null
             showConnectScreen.value = true
@@ -357,7 +358,7 @@ fun MainView() {
     } else {
         ControlScreen(
             onDisconnect = {
-                //TODO make work
+                //to-do make work (i think it already works but there's probably a reason i wrote that)
                 TemporaryData.connectedThread?.cancel()
                 TemporaryData.connectedDevice = null
                 showConnectScreen.value = true
@@ -394,7 +395,7 @@ fun ConnectScreen(onConnect: () -> Unit) {
     }
     //0 for paired device, 1 for scanned Device
     val clickedCardType = remember {
-        mutableStateOf(0)
+        mutableIntStateOf(0)
     }
     val shouldUpdate = remember {
         mutableStateOf(true)
@@ -436,7 +437,7 @@ fun ConnectScreen(onConnect: () -> Unit) {
                     Log.d("myApp", "Canceled Discovery")
                     //get device
                     val device =
-                        if (clickedCardType.value == 0) bondedDevices.value.elementAt(clickedCard.value!!)
+                        if (clickedCardType.intValue == 0) bondedDevices.value.elementAt(clickedCard.value!!)
                         else scannedDevices.value.elementAt(clickedCard.value!!)
 
                     TemporaryData.connectedDevice = device
@@ -457,14 +458,13 @@ fun ConnectScreen(onConnect: () -> Unit) {
             ) {
                 Text("Connect to device" +
                     if (clickedCard.value != null)
-                            (": " + if (clickedCardType.value == 0) bondedDevices.value.elementAt(clickedCard.value!!).name else scannedDevices.value.elementAt(
+                            (": " + if (clickedCardType.intValue == 0) bondedDevices.value.elementAt(clickedCard.value!!).name else scannedDevices.value.elementAt(
                                 clickedCard.value!!
                             ).name )
                     else "")
             }
         },
         floatingActionButton = {
-            //TODO make it work
                                Button(onClick = {shouldUpdate.value = true}) {
                                    Text("update!")
                                }
@@ -490,10 +490,10 @@ fun ConnectScreen(onConnect: () -> Unit) {
                                 .height(50.dp)
                                 .fillMaxWidth()
                                 .background(MaterialTheme.colorScheme.primaryContainer),
-                            clicked = (index == clickedCard.value && clickedCardType.value == 0)
+                            clicked = (index == clickedCard.value && clickedCardType.intValue == 0)
                         ) {
                             clickedCard.value = index
-                            clickedCardType.value = 0
+                            clickedCardType.intValue = 0
                         }
                     }
                 }
@@ -522,10 +522,10 @@ fun ConnectScreen(onConnect: () -> Unit) {
                                 .height(50.dp)
                                 .fillMaxWidth()
                                 .background(MaterialTheme.colorScheme.primaryContainer),
-                            clicked = (index == clickedCard.value && clickedCardType.value == 1)
+                            clicked = (index == clickedCard.value && clickedCardType.intValue == 1)
                         ) {
                             clickedCard.value = index
-                            clickedCardType.value = 1
+                            clickedCardType.intValue = 1
                         }
                     }
                 }
@@ -543,7 +543,6 @@ fun LoadingScreen() {
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxSize()
     ){
-        //TODO add animation
         SpinningIcon(id = R.drawable.loading_icon, modifier = Modifier.scale(2f))
         Spacer(modifier = Modifier.height(50.dp))
         Text("Connecting")
@@ -552,7 +551,7 @@ fun LoadingScreen() {
 
 @Composable
 fun SpinningIcon(id: Int, modifier: Modifier = Modifier) {
-    val infiniteTransition = rememberInfiniteTransition()
+    val infiniteTransition = rememberInfiniteTransition(label = "")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
@@ -562,7 +561,7 @@ fun SpinningIcon(id: Int, modifier: Modifier = Modifier) {
                 easing = LinearEasing
             ),
             repeatMode = RepeatMode.Restart
-        )
+        ), label = ""
     )
 
     /*androidx.compose.material3.Icon(
@@ -643,7 +642,7 @@ fun DirectionalInput(direction: Byte = NO_DIRECTION) {
     }
     if (isActive.value != isPressed) {
         //emitSignal(isPressed)
-        val data = arrayOf<Byte>(
+        val data = arrayOf(
             'd'.code.toByte(),
             direction,
             if (isPressed) 1 else 0

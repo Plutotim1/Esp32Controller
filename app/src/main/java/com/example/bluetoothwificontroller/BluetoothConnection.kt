@@ -40,7 +40,7 @@ class BluetoothConnection(
                 Log.d("myAppBT", "socket created")
             } catch (e: IOException) {
                 Log.d("myAppBT", "Couldn't create socket")
-                SendErrorCode(-1)
+                sendErrorCode(1)
                 return
             }
             try {
@@ -52,7 +52,7 @@ class BluetoothConnection(
                     Log.d("myAppBT", "trying to disconnect from socket after failed connection")
                     socket.close()
                 }
-                SendErrorCode(-1)
+                sendErrorCode(2)
                 return
             }
 
@@ -61,7 +61,7 @@ class BluetoothConnection(
             Log.d("myApp", "Setup completed")
 
             //tell main-activity to load the control screen
-            SendActionCode(1)
+            sendActionCode(1)
 
 
             var numBytes: Int // bytes returned from read()
@@ -84,7 +84,7 @@ class BluetoothConnection(
             }
         }
 
-        private fun SendErrorCode(code: Int) {
+        private fun sendErrorCode(code: Int) {
             val data = Bundle()
             data.putInt("error", code)
             val message = Message.obtain()
@@ -92,7 +92,7 @@ class BluetoothConnection(
             handler.dispatchMessage(message)
         }
 
-        private fun SendActionCode(code: Int) {
+        private fun sendActionCode(code: Int) {
             val data = Bundle()
             data.putInt("action", code)
             val message = Message.obtain()

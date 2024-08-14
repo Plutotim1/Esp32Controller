@@ -2,7 +2,7 @@ package com.example.bluetoothwificontroller
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import java.util.logging.Handler
+
 
 class TemporaryData {
     companion object {
@@ -10,6 +10,6 @@ class TemporaryData {
         var connectedDevice: BluetoothDevice? = null
         var bluetoothAdapter: BluetoothAdapter? = null
         var connectedThread: BluetoothConnection.ConnectedThread? = null
-        var unknownDeviceCount: Int = 0;
+        var unknownDeviceCount: Int = 0
     }
 }
